@@ -7,7 +7,7 @@ function inviteResponse(evt) {
     $.ajax("/invite_ack/" + accepter + "/" + joiner,
            {data: {is_approved: is_approved}, method: "POST"})
         .success(function() {
-            invitationMsg = document.getElementById('join-warning');
+            nvitationMsg = document.getElementById('join-warning');
             $(invitationMsg).hide();
             $('#send-message-form textarea, #send-message-form button')
                 .prop('disabled', false)
@@ -127,8 +127,9 @@ function encryptMessage(recieverId, rPublicKey, msgText) {
                                               msgBuffer)
                             .then(
                                 function(strBuffer) { 
-                                    var encodedStr = new Uint8Array(strBuffer);
-                                    encodedStr = encodedStr.toString();
+                                    var encryptedBuffer = new Uint8Array(strBuffer);
+                                    var encryptedStr = arrayBufferViewToStr(encryptedBuffer);
+                                    var encodedStr = btoa(encryptedStr);
                                     resolve({ 'user_id': recieverId,
                                               'encoded_message': encodedStr})},
                                 function(err) {
@@ -146,7 +147,8 @@ function addMessages(stream, msgs) {
     }
     
     var workingMsg = msgs[0];
-    var msgBuffer = new Uint8Array(workingMsg.message.split(","));
+    var decodedMsg = atob(workingMsg.message)
+    var msgBuffer = strToArrayBufferView(decodedMsg);
     crypto.subtle.decrypt({name: "RSA-OAEP", iv: vector}, privateKey, msgBuffer)
         .then(function(textBuffer) {
                     var msgText = arrayBufferViewToStr(new Uint8Array(textBuffer));
@@ -223,6 +225,7 @@ function pollForMessages(conversation_id, user_id, interval) {
                    return;
                 }
                 var newMessages = resp.new_messages;
+                console.log(newMessages)
                 var chatStream = document.getElementById('conversation');
                 addMessages(chatStream, newMessages);
                 inviteQueue = resp.invitations.concat(inviteQueue)
